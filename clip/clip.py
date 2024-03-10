@@ -88,16 +88,16 @@ def _convert_tensor_to_rgb_tensor(tensor):
     return torch.tile(tensor, (3, 1, 1))
 
 
-def _transform(n_px, *, size=None, colored=False, format="image", **kwargs):
+def _transform(n_px, *, size=None, color=False, format="image", **kwargs):
     # print(f"> Loading Preprocessing Transform -- {n_px=}, {size=}, {colored=}, {format=}")
     ope = []
 
     if format == 'array':
-        if not colored:
+        if not color:
             ope += [_convert_array_to_rgb_tensor]
         else:
             ope += [ToTensor()]
-    elif format == 'tensor' and not colored:
+    elif format == 'tensor' and not color:
         ope += [_convert_tensor_to_rgb_tensor]
 
     if size == (n_px, n_px):
@@ -110,7 +110,7 @@ def _transform(n_px, *, size=None, colored=False, format="image", **kwargs):
         ope += [Resize(n_px, interpolation=BICUBIC), CenterCrop(n_px)]
 
     if format == "image":
-        if not colored:
+        if not color:
             ope += [_convert_image_to_rgb]
         ope += [ToTensor()]
 
