@@ -114,7 +114,7 @@ def _transform(n_px, *, size=None, color=False, format="image", **kwargs):
             ope += [_convert_image_to_rgb]
         ope += [ToTensor()]
 
-    return ope + [Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))]
+    return Compose(ope + [Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])
 
 
 def full_transform(n_px):
