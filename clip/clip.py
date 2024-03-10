@@ -2,12 +2,16 @@ import hashlib
 import os
 import urllib
 import warnings
-from typing import Any, Union, List
+from typing import Union, List
 from pkg_resources import packaging
 
-import torch
+import numpy as np
+
 from PIL import Image
+
+import torch
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+
 from tqdm import tqdm
 
 from .model import build_model
@@ -76,14 +80,49 @@ def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
 
-def _transform(n_px):
-    return Compose([
-        Resize(n_px, interpolation=BICUBIC),
-        CenterCrop(n_px),
-        _convert_image_to_rgb,
-        ToTensor(),
-        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
-    ])
+def _convert_array_to_rgb_tensor(array):
+    return torch.tensor(np.tile(array, (3, 1, 1)), dtype=torch.float)
+
+
+def _convert_tensor_to_rgb_tensor(tensor):
+    return torch.tile(tensor, (3, 1, 1))
+
+
+def _transform(n_px, *, size=None, colored=False, format="image"):
+    # print(f"> Loading Preprocessing Transform -- {n_px=}, {size=}, {colored=}, {format=}")
+    ope = []
+
+    if format == 'array':
+        if not colored:
+            ope += [_convert_array_to_rgb_tensor]
+        else:
+            ope += [ToTensor()]
+    elif format == 'tensor' and not colored:
+        ope += [_convert_tensor_to_rgb_tensor]
+
+    if size == (n_px, n_px):
+        pass
+    elif size and size[0] == size[1]:
+        ope += [Resize(n_px, interpolation=BICUBIC)]
+    elif size and min(size) == n_px:
+        ope += [CenterCrop((n_px, n_px))]
+    else:
+        ope += [Resize(n_px, interpolation=BICUBIC), CenterCrop(n_px)]
+
+    if format == "image":
+        if not colored:
+            ope += [_convert_image_to_rgb]
+        ope += [ToTensor()]
+
+    return ope + [Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))]
+
+    # return Compose([
+    #     Resize(n_px, interpolation=BICUBIC),
+    #     CenterCrop(n_px),
+    #     _convert_image_to_rgb,
+    #     ToTensor(),
+    #     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+    # ])
 
 
 def available_models() -> List[str]:
@@ -91,7 +130,7 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit: bool = False, download_root: str = None):
+def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit: bool = False, download_root: str = None, **kwargs):
     """Load a CLIP model
 
     Parameters
@@ -140,7 +179,7 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
         model = build_model(state_dict or model.state_dict()).to(device)
         if str(device) == "cpu":
             model.float()
-        return model, _transform(model.visual.input_resolution)
+        return model, _transform(model.visual.input_resolution, **kwargs)
 
     # patch the device names
     device_holder = torch.jit.trace(lambda: torch.ones([]).to(torch.device(device)), example_inputs=[])
@@ -148,7 +187,7 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
 
     def _node_get(node: torch._C.Node, key: str):
         """Gets attributes of a node which is polymorphic over return type.
-        
+
         From https://github.com/pytorch/pytorch/pull/82628
         """
         sel = node.kindOf(key)
@@ -200,7 +239,7 @@ def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_a
 
         model.float()
 
-    return model, _transform(model.input_resolution.item())
+    return model, _transform(model.input_resolution.item(), **kwargs)
 
 
 def tokenize(texts: Union[str, List[str]], context_length: int = 77, truncate: bool = False) -> Union[torch.IntTensor, torch.LongTensor]:
