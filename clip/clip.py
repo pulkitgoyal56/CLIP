@@ -28,7 +28,7 @@ if packaging.version.parse(torch.__version__) < packaging.version.parse("1.7.1")
     warnings.warn("PyTorch version 1.7.1 or higher is recommended")
 
 
-__all__ = ["available_models", "load", "tokenize"]
+__all__ = ["available_models", "load", "tokenize", "full_transform"]
 _tokenizer = _Tokenizer()
 
 _MODELS = {
@@ -88,7 +88,7 @@ def _convert_tensor_to_rgb_tensor(tensor):
     return torch.tile(tensor, (3, 1, 1))
 
 
-def _transform(n_px, *, size=None, colored=False, format="image"):
+def _transform(n_px, *, size=None, colored=False, format="image", **kwargs):
     # print(f"> Loading Preprocessing Transform -- {n_px=}, {size=}, {colored=}, {format=}")
     ope = []
 
@@ -116,13 +116,15 @@ def _transform(n_px, *, size=None, colored=False, format="image"):
 
     return ope + [Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))]
 
-    # return Compose([
-    #     Resize(n_px, interpolation=BICUBIC),
-    #     CenterCrop(n_px),
-    #     _convert_image_to_rgb,
-    #     ToTensor(),
-    #     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
-    # ])
+
+def full_transform(n_px):
+    return Compose([
+        Resize(n_px, interpolation=BICUBIC),
+        CenterCrop(n_px),
+        _convert_image_to_rgb,
+        ToTensor(),
+        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+    ])
 
 
 def available_models() -> List[str]:
