@@ -92,10 +92,10 @@ def _transform(n_px, *, size=None, color=False, format="image", **kwargs):
     ope = []
 
     if format == 'array':
-        if not color:
-            ope += [_convert_array_to_rgb_tensor]
-        else:
+        if color:
             ope += [ToTensor()]
+        else:
+            ope += [_convert_array_to_rgb_tensor]
     elif format == 'tensor' and not color:
         ope += [_convert_tensor_to_rgb_tensor]
 
@@ -113,7 +113,13 @@ def _transform(n_px, *, size=None, color=False, format="image", **kwargs):
             ope += [_convert_image_to_rgb]
         ope += [ToTensor()]
 
-    return Compose(ope + [Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])
+    nn = np.array([(0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)])
+    if color or format == "image":
+        ope += [Normalize(*nn)]
+    else:
+        ope += [Normalize(*nn * 255)]
+
+    return Compose(ope)
 
 
 def full_transform(n_px):
