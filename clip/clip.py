@@ -6,11 +6,10 @@ from typing import Union, List
 from pkg_resources import packaging
 
 import numpy as np
-
-from PIL import Image
-
 import torch
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+
+from PIL import Image
 
 from tqdm import tqdm
 
