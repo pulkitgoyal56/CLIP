@@ -104,7 +104,7 @@ def _transform(n_px, *, size=None, color=False, format="image", **kwargs):
     elif size and size[0] == size[1]:
         ope += [Resize(n_px, interpolation=BICUBIC)]
     elif size and min(size) == n_px:
-        ope += [CenterCrop((n_px, n_px))]
+        ope += [CenterCrop(n_px)]
     else:
         ope += [Resize(n_px, interpolation=BICUBIC), CenterCrop(n_px)]
 
