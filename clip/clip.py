@@ -76,15 +76,15 @@ def _download(url: str, root: str):
     return download_target
 
 
-def _convert_image_to_rgb(image):
+def _convert_image_to_rgb(image: Image.Image):
     return image.convert("RGB")
 
 
-def _convert_array_to_rgb_tensor(array):
+def _convert_array_to_rgb_tensor(array: np.ndarray):
     return torch.tensor(np.tile(array, (3, 1, 1)), dtype=torch.float)
 
 
-def _convert_tensor_to_rgb_tensor(tensor):
+def _convert_tensor_to_rgb_tensor(tensor: torch.Tensor):
     return torch.tile(tensor, (3, 1, 1))
 
 
